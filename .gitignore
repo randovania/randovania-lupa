@@ -21,3 +21,6 @@ lupa/lua*.pyx
 
 # Track Lua source code
 !third-party/**/*.c
+
+venv
+.eggs
