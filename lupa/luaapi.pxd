@@ -148,6 +148,7 @@ cdef extern from "lua.h" nogil:
                                        char *chunkname)
 
     int   lua_dump (lua_State *L, lua_Writer writer, void *data)
+    int   luaU_dump (lua_State *L, const Proto* f, lua_Writer writer, void *data, int strip)
 
     # coroutine functions
     int  lua_yield (lua_State *L, int nresults)
@@ -265,6 +266,40 @@ cdef extern from "lua.h" nogil:
         # private part
         int i_ci               #           active function */
 
+################################################################################
+# lstate.h
+# minimal definition to use luaU_dump
+################################################################################
+cdef extern from "lstate.h" nogil:
+    cppclass Proto:
+        pass
+    ctypedef Proto Proto
+
+    ctypedef struct LClosure:
+        Proto* p
+
+    union Closure:
+        LClosure l
+    ctypedef Closure Closure
+
+    union GCObject:
+        Closure cl
+    ctypedef GCObject GCObject
+
+    union Value:
+        GCObject* gc
+    ctypedef Value Value
+
+    ctypedef struct lua_TValue:
+        Value value
+    ctypedef lua_TValue TValue
+    ctypedef TValue* StkId
+
+    ctypedef struct lua_State:
+        StkId top
+
+cdef extern from "lobject.h":
+    Closure* clvalue(TValue *o)         # clvalue(o)	check_exp(ttisfunction(o), &(o)->value.gc->cl)
 
 ################################################################################
 # lauxlib.h

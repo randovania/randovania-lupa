@@ -8,11 +8,11 @@ from __future__ import absolute_import
 
 cimport cython
 
-from libc.string cimport strlen, strchr
+from libc.string cimport strlen, strchr, memcpy
 from libc.stdlib cimport malloc, free, realloc
 from libc.stdio cimport fprintf, stderr, fflush
 from . cimport luaapi as lua
-from .luaapi cimport lua_State
+from .luaapi cimport lua_State, TValue, clvalue
 
 cimport cpython.ref
 cimport cpython.tuple
@@ -21,7 +21,7 @@ cimport cpython.long
 from cpython.ref cimport PyObject
 from cpython.method cimport (
     PyMethod_Check, PyMethod_GET_SELF, PyMethod_GET_FUNCTION)
-from cpython.bytes cimport PyBytes_FromFormat
+from cpython.bytes cimport PyBytes_FromFormat, PyBytes_FromStringAndSize
 
 #from libc.stdint cimport uintptr_t
 cdef extern from *:
@@ -611,6 +611,50 @@ cdef class LuaRuntime:
                 raise LuaError("failed to convert overflow_handler")
             lua.lua_rawset(L, lua.LUA_REGISTRYINDEX)      #
         finally:
+            lua.lua_settop(L, old_top)
+            unlock_runtime(self)
+
+    def compile_to_byes(self, lua_code: str) -> bytes:
+        """Compiles a Lua program and returns the bytes.
+        
+        lua_code is a string with the lua code
+        """
+        assert self._state is not NULL
+
+        lua_code_bytes = self._source_encode(lua_code)
+
+        cdef lua_State* L = self._state
+        lock_runtime(self)
+        old_top = lua.lua_gettop(L)
+        cdef size_t size
+        cdef const char *err
+        cdef ByteDescriptor bd
+        cdef void* ptr
+        cdef TValue* o
+        try:
+            check_lua_stack(L, 1)
+            status = lua.luaL_loadbuffer(L, lua_code_bytes, len(lua_code_bytes), NULL)
+            if status == 0:
+                ptr = &bd
+                bd.length = 0
+                bd.data = NULL
+                o = <TValue*> L.top - 1
+                lua.luaU_dump(L, clvalue(o).l.p, byte_writer, ptr, 1)
+                return PyBytes_FromStringAndSize(bd.data, bd.length)
+            else:
+                err = lua.lua_tolstring(L, -1, &size)
+                if self._encoding is None:
+                    error = err[:size]  # bytes
+                    is_memory_error = b"not enough memory" in error
+                else:
+                    error = err[:size].decode(self._encoding)
+                    is_memory_error = u"not enough memory" in error
+                if is_memory_error:
+                    raise LuaMemoryError(error)
+                raise LuaSyntaxError(error)
+        finally:
+            if bd.length != 0:
+                free(bd.data)
             lua.lua_settop(L, old_top)
             unlock_runtime(self)
 
@@ -2480,3 +2524,26 @@ cdef int get_from_lua_table(lua_State* L) noexcept nogil:
     lua.lua_settop(L, 2)    # tbl key
     lua.lua_gettable(L, 1)  # tbl tbl[key]
     return 1
+
+
+cdef struct ByteDescriptor:
+    size_t length
+    char* data
+
+cdef int byte_writer(lua_State* L, void* new_data, size_t new_size, void* desc) noexcept nogil:
+    cdef ByteDescriptor* bd = <ByteDescriptor*>desc
+    cdef char* data
+    data = bd.data
+    if data == NULL:
+        data = <char*>malloc(new_size)
+    else:
+        data = <char*>realloc(data, new_size + bd.length)
+
+    if data != NULL:
+        memcpy(data + bd.length, new_data, new_size)
+        bd.data = data
+        bd.length = bd.length + new_size
+    else:
+        free(data)
+        return 1
+    return 0
