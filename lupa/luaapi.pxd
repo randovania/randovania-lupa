@@ -273,22 +273,18 @@ cdef extern from "lua.h" nogil:
 cdef extern from "lstate.h" nogil:
     cppclass Proto:
         pass
-    ctypedef Proto Proto
 
     ctypedef struct LClosure:
         Proto* p
 
     union Closure:
         LClosure l
-    ctypedef Closure Closure
 
     union GCObject:
         Closure cl
-    ctypedef GCObject GCObject
 
     union Value:
         GCObject* gc
-    ctypedef Value Value
 
     ctypedef struct lua_TValue:
         Value value

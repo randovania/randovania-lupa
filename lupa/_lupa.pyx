@@ -629,6 +629,8 @@ cdef class LuaRuntime:
         cdef size_t size
         cdef const char *err
         cdef ByteDescriptor bd
+        bd.length = 0
+        bd.data = NULL
         cdef void* ptr
         cdef TValue* o
         try:
@@ -636,8 +638,6 @@ cdef class LuaRuntime:
             status = lua.luaL_loadbuffer(L, lua_code_bytes, len(lua_code_bytes), NULL)
             if status == 0:
                 ptr = &bd
-                bd.length = 0
-                bd.data = NULL
                 o = <TValue*> L.top - 1
                 lua.luaU_dump(L, clvalue(o).l.p, byte_writer, ptr, 1)
                 return PyBytes_FromStringAndSize(bd.data, bd.length)
@@ -653,8 +653,7 @@ cdef class LuaRuntime:
                     raise LuaMemoryError(error)
                 raise LuaSyntaxError(error)
         finally:
-            if bd.length != 0:
-                free(bd.data)
+            free(bd.data)
             lua.lua_settop(L, old_top)
             unlock_runtime(self)
 
@@ -2544,6 +2543,5 @@ cdef int byte_writer(lua_State* L, void* new_data, size_t new_size, void* desc) 
         bd.data = data
         bd.length = bd.length + new_size
     else:
-        free(data)
         return 1
     return 0
