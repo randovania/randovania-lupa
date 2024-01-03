@@ -148,7 +148,6 @@ cdef extern from "lua.h" nogil:
                                        char *chunkname)
 
     int   lua_dump (lua_State *L, lua_Writer writer, void *data)
-    int   luaU_dump (lua_State *L, const Proto* f, lua_Writer writer, void *data, int strip)
 
     # coroutine functions
     int  lua_yield (lua_State *L, int nresults)
@@ -273,7 +272,7 @@ cdef extern from "lua.h" nogil:
 cdef extern from "lstate.h" nogil:
     cppclass Proto:
         pass
-
+    
     ctypedef struct LClosure:
         Proto* p
 
@@ -296,6 +295,9 @@ cdef extern from "lstate.h" nogil:
 
 cdef extern from "lobject.h":
     Closure* clvalue(TValue *o)         # clvalue(o)	check_exp(ttisfunction(o), &(o)->value.gc->cl)
+
+cdef extern from "lundump.h" nogil:
+    int   luaU_dump (lua_State *L, const Proto* f, lua_Writer writer, void *data, int strip)
 
 ################################################################################
 # lauxlib.h

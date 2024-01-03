@@ -103,6 +103,6 @@ if sys.version_info < (3, 7):
 del sys
 
 try:
-    from lupa.version import __version__
+    from randovania_lupa.version import __version__
 except ImportError:
     pass

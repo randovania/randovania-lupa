@@ -19,7 +19,7 @@ try:
 except ImportError:
     from distutils.core import setup, Extension
 
-VERSION = '2.1'
+VERSION = '2.0'
 
 extra_setup_args = {}
 
@@ -29,7 +29,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # support 'test' target if setuptools/distribute is available
 
 if 'setuptools' in sys.modules:
-    extra_setup_args['test_suite'] = 'lupa.tests.suite'
+    extra_setup_args['test_suite'] = 'randovania_lupa.tests.suite'
 
 
 class PkgConfigError(RuntimeError):
@@ -385,7 +385,7 @@ def prepare_extensions(use_cython=True):
     ext_libraries = []
     for config in configs:
         ext_name = config.get('libversion', 'lua')
-        src, dst = os.path.join('lupa', '_lupa.pyx'), os.path.join('lupa', ext_name + '.pyx')
+        src, dst = os.path.join('randovania_lupa', '_lupa.pyx'), os.path.join('randovania_lupa', ext_name + '.pyx')
         if not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
             with open(dst, 'wb') as f_out:
                 f_out.write(b'#######  DO NOT EDIT - BUILD TIME COPY OF "_lupa.pyx" #######\n\n')
@@ -394,7 +394,7 @@ def prepare_extensions(use_cython=True):
 
         libs = config.get('ext_libraries')
         ext_modules.append(Extension(
-            'lupa.' + ext_name,
+            'randovania_lupa.' + ext_name,
             sources=[dst] + (libs[0][1]['sources'] if libs else []),
             extra_objects=config.get('extra_objects'),
             include_dirs=config.get('include_dirs'),
@@ -402,7 +402,7 @@ def prepare_extensions(use_cython=True):
         ))
 
         if not use_cython:
-            if not os.path.exists(os.path.join(basedir, 'lupa', '_lupa.c')):
+            if not os.path.exists(os.path.join(basedir, 'randovania_lupa', '_lupa.c')):
                 print("generated sources not available, need Cython to build")
                 use_cython = True
 
@@ -442,14 +442,14 @@ long_description = '\n\n'.join([
     read_file(os.path.join(basedir, text_file))
     for text_file in ['README.rst', 'INSTALL.rst', 'CHANGES.rst', "LICENSE.txt"]])
 
-write_file(os.path.join(basedir, 'lupa', 'version.py'), u"__version__ = '%s'\n" % VERSION)
+write_file(os.path.join(basedir, 'randovania_lupa', 'version.py'), u"__version__ = '%s'\n" % VERSION)
 
 dll_files = []
 for config in configs:
     if config.get('libfile'):
         # include Lua DLL in the lib folder if we are on Windows
         dll_file = os.path.splitext(config['libfile'])[0] + ".dll"
-        shutil.copy(dll_file, os.path.join(basedir, 'lupa'))
+        shutil.copy(dll_file, os.path.join(basedir, 'randovania_lupa'))
         dll_files.append(os.path.basename(dll_file))
 
 if dll_files:
@@ -463,15 +463,12 @@ cython_dependency = ([
 # call distutils
 
 setup(
-    name="lupa",
+    name="randovania-lupa",
     version=VERSION,
-    author="Stefan Behnel",
-    author_email="stefan_ml@behnel.de",
-    maintainer="Lupa-dev mailing list",
-    maintainer_email="lupa-dev@freelists.org",
-    url="https://github.com/scoder/lupa",
+    author="Randovania",
+    url="https://github.com/randovania/randovania-lupa",
 
-    description="Python wrapper around Lua and LuaJIT",
+    description="Python wrapper around Lua for usage in Randovania projects",
 
     long_description=long_description,
     license='MIT style',
@@ -481,14 +478,6 @@ setup(
         'Intended Audience :: Information Technology',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Cython',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
@@ -498,7 +487,7 @@ setup(
         'Topic :: Software Development',
     ],
 
-    packages=['lupa'],
+    packages=['randovania_lupa'],
     setup_requires=[cython_dependency],
     ext_modules=ext_modules,
     libraries=ext_libraries,

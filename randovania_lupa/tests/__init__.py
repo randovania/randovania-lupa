@@ -6,23 +6,23 @@ import os
 import os.path as os_path
 import sys
 
-import lupa
+import randovania_lupa
 
 
 class LupaTestCase(unittest.TestCase):
     """
     Subclasses can use 'self.lupa' to get the test module, which build_suite_for_module() below will vary.
     """
-    lupa = lupa
+    lupa = randovania_lupa
 
 
 def find_lua_modules():
-    modules = [lupa]
+    modules = [randovania_lupa]
     imported = set()
     for filename in os.listdir(os.path.dirname(os.path.dirname(__file__))):
         if not filename.startswith('lua'):
             continue
-        module_name = "lupa." + filename.partition('.')[0]
+        module_name = "randovania_lupa." + filename.partition('.')[0]
         if module_name in imported:
             continue
         try:
@@ -77,7 +77,7 @@ def suite():
     tests = []
     for filename in os.listdir(test_dir):
         if filename.endswith('.py') and not filename.startswith('_'):
-            tests.append('lupa.tests.'  + filename[:-3])
+            tests.append('randovania_lupa.tests.'  + filename[:-3])
 
     suite = unittest.defaultTestLoader.loadTestsFromNames(tests)
 

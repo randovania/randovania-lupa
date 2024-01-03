@@ -25,18 +25,18 @@ all:  local
 local:
 	LUPA_WITH_LUA_DLOPEN=$(WITH_LUA_DLOPEN) ${PYTHON} setup.py build_ext --inplace $(WITH_CYTHON)
 
-sdist dist/lupa-$(VERSION).tar.gz:
+sdist dist/randovania-lupa-$(VERSION).tar.gz:
 	${PYTHON} setup.py sdist
 
 test: local
-	PYTHONPATH=. $(PYTHON) -m unittest lupa.tests.test
+	PYTHONPATH=. $(PYTHON) -m unittest randovania_lupa.tests.test
 
 clean:
-	rm -fr build lupa/_lupa*.so lupa/lua*.pyx lupa/*.c
+	rm -fr build randovania_lupa/_lupa*.so randovania_lupa/lua*.pyx lupa/*.c
 	@for dir in third-party/*/; do $(MAKE) -C $${dir} clean; done
 
 realclean: clean
-	rm -fr lupa/_lupa.c
+	rm -fr randovania_lupa/_lupa.c
 
 wheel:
 	LUPA_WITH_LUA_DLOPEN=$(WITH_LUA_DLOPEN) $(PYTHON) setup.py bdist_wheel $(WITH_CYTHON)
@@ -47,8 +47,8 @@ qemu-user-static:
 wheel_manylinux: $(addprefix wheel_,$(MANYLINUX_IMAGES))
 $(addprefix wheel_,$(filter-out %_x86_64, $(filter-out %_i686, $(MANYLINUX_IMAGES)))): qemu-user-static
 
-wheel_%: dist/lupa-$(VERSION).tar.gz
-	@echo "Building $(subst wheel_,,$@) wheels for Lupa $(VERSION)"
+wheel_%: dist/randovania-lupa-$(VERSION).tar.gz
+	@echo "Building $(subst wheel_,,$@) wheels for Randovania-Lupa $(VERSION)"
 	mkdir -p wheelhouse_$(subst wheel_,,$@)
 	time docker run --rm -t \
 		-v $(shell pwd):/io \
@@ -67,10 +67,10 @@ wheel_%: dist/lupa-$(VERSION).tar.gz
 				$$PYBIN/python -V; \
 				{ time $$PYBIN/pip wheel -v -w /io/$$WHEELHOUSE /io/$< & } ; \
 			done; wait; \
-			for whl in /io/$$WHEELHOUSE/lupa-$(VERSION)-*-linux_*.whl; do auditwheel repair $$whl -w /io/$$WHEELHOUSE; done; \
-			for whl in /io/$$WHEELHOUSE/lupa-$(VERSION)-*-m*linux*.whl; do \
-				pyver=$${whl#*/lupa-$(VERSION)-}; pyver=$${pyver%%-m*}; \
+			for whl in /io/$$WHEELHOUSE/randovania_lupa-$(VERSION)-*-linux_*.whl; do auditwheel repair $$whl -w /io/$$WHEELHOUSE; done; \
+			for whl in /io/$$WHEELHOUSE/randovania_lupa-$(VERSION)-*-m*linux*.whl; do \
+				pyver=$${whl#*/randovania_lupa-$(VERSION)-}; pyver=$${pyver%%-m*}; \
 				echo "Installing in $${pyver}: $${whl}"; \
-				/opt/python/$${pyver}/bin/python -m pip install -U $${whl} && /opt/python/$${pyver}/bin/python -c "import lupa" || exit 1; \
-				/opt/python/$${pyver}/bin/python -m pip uninstall -y lupa; \
+				/opt/python/$${pyver}/bin/python -m pip install -U $${whl} && /opt/python/$${pyver}/bin/python -c "import randovania_lupa" || exit 1; \
+				/opt/python/$${pyver}/bin/python -m pip uninstall -y randovania-lupa; \
 			done; true'

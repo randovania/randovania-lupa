@@ -239,7 +239,7 @@ cdef class LuaRuntime:
 
     Example usage::
 
-      >>> from lupa import LuaRuntime
+      >>> from randovania_lupa import LuaRuntime
       >>> lua = LuaRuntime()
 
       >>> lua.eval('1+1')

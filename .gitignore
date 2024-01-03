@@ -13,8 +13,8 @@ MANIFEST
 *.c
 *.patch
 wheel*/
-lupa/version.py
-lupa/lua*.pyx
+randovania_lupa/version.py
+randovania_lupa/lua*.pyx
 
 # Vim swapfiles
 *.swp

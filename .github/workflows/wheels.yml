@@ -1,201 +1,204 @@
-# name: Wheel build
+name: Wheel build
 
-# on:
-#   release:
-#     types: [created]
-#   workflow_dispatch:
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
 
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
-# permissions:
-#   contents: write  # to create GitHub release (softprops/action-gh-release)
+permissions:
+  contents: write # to create GitHub release (softprops/action-gh-release)
 
-# jobs:
-#   sdist:
-#     runs-on: ubuntu-20.04
+jobs:
+  sdist:
+    runs-on: ubuntu-20.04
 
-#     steps:
-#     - uses: actions/checkout@v3
+    steps:
+      - uses: actions/checkout@v3
 
-#     - name: Check out recursively
-#       run: git submodule update --init --recursive
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: 3.9
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
 
-#     - name: Install Python dependencies
-#       run: python -m pip install -r requirements.txt
+      - name: Build sdist
+        run: make sdist
 
-#     - name: Build sdist
-#       run: make sdist
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*.tar.gz
 
-#     - name: Release
-#       uses: softprops/action-gh-release@v1
-#       if: startsWith(github.ref, 'refs/tags/')
-#       with:
-#         files: dist/*.tar.gz
+      - name: Upload sdist
+        uses: actions/upload-artifact@v3
+        with:
+          name: sdist
+          path: dist/*.tar.gz
 
-#     - name: Upload sdist
-#       uses: actions/upload-artifact@v3
-#       with:
-#         name: sdist
-#         path: dist/*.tar.gz
+  Linux:
+    runs-on: ubuntu-latest
 
-#   Linux:
-#     runs-on: ubuntu-latest
+    strategy:
+      # Allows for matrix sub-jobs to fail without canceling the rest
+      fail-fast: false
 
-#     strategy:
-#       # Allows for matrix sub-jobs to fail without canceling the rest
-#       fail-fast: false
+      matrix:
+        image:
+          # - manylinux2014_x86_64
+          # - manylinux2014_i686
+          - manylinux_2_28_x86_64
+          # - manylinux_2_24_i686
+          #- manylinux_2_28_aarch64
+          # - musllinux_1_1_x86_64
+          #- musllinux_1_1_aarch64
+          #- manylinux_2_24_ppc64le
+          #- manylinux_2_24_ppc64le
+          #- manylinux_2_24_s390x
+        pyversion: ["cp310-cp310", "cp311-cp311", "cp312-cp312"]
 
-#       matrix:
-#         image:
-#           - manylinux2014_x86_64
-#           - manylinux2014_i686
-#           - manylinux_2_28_x86_64
-#           - manylinux_2_24_i686
-#           #- manylinux_2_28_aarch64
-#           - musllinux_1_1_x86_64
-#           #- musllinux_1_1_aarch64
-#           #- manylinux_2_24_ppc64le
-#           #- manylinux_2_24_ppc64le
-#           #- manylinux_2_24_s390x
-#         pyversion: ["*"]
+        #include:
+        # - image: manylinux_2_28_aarch64
+        #   pyversion: "cp311*"
+        # - image: manylinux_2_28_aarch64
+        #   pyversion: "cp312*"
 
-#         include:
-#           - image: manylinux2014_aarch64
-#             pyversion: "cp36*"
-#           - image: manylinux_2_24_aarch64
-#             pyversion: "cp37*"
-#           - image: manylinux_2_24_aarch64
-#             pyversion: "cp38*"
-#           - image: manylinux_2_28_aarch64
-#             pyversion: "cp39*"
-#           - image: manylinux_2_28_aarch64
-#             pyversion: "cp310*"
-#           - image: manylinux_2_28_aarch64
-#             pyversion: "cp311*"
-#           - image: manylinux_2_28_aarch64
-#             pyversion: "cp312*"
+        #  - image: musllinux_1_1_aarch64
+        #    pyversion: "cp311*"
+        #  - image: musllinux_1_1_aarch64
+        #    pyversion: "cp312*"
 
-#           - image: musllinux_1_1_aarch64
-#             pyversion: "cp37*"
-#           - image: musllinux_1_1_aarch64
-#             pyversion: "cp38*"
-#           - image: musllinux_1_1_aarch64
-#             pyversion: "cp39*"
-#           - image: musllinux_1_1_aarch64
-#             pyversion: "cp310*"
-#           - image: musllinux_1_1_aarch64
-#             pyversion: "cp311*"
-#           - image: musllinux_1_1_aarch64
-#             pyversion: "cp312*"
+    steps:
+      - uses: actions/checkout@v3
 
-#     steps:
-#     - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
-#     - name: Check out recursively
-#       run: git submodule update --init --recursive
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
 
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: 3.9
+      - name: Build Linux wheels
+        run: make USE_BUNDLE=true sdist wheel_${{ matrix.image }}
+        env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}" }
 
-#     - name: Install dependencies
-#       run: python -m pip install -r requirements.txt
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: wheelhouse_*/*-m*linux*.whl # manylinux / musllinux
 
-#     - name: Build Linux wheels
-#       run: make USE_BUNDLE=true sdist wheel_${{ matrix.image }}
-#       env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}" }
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.image }}-${{ matrix.pyversion }}
+          path: wheelhouse_${{ matrix.image}}/*-m*linux*.whl
+          if-no-files-found: ignore
 
-#     - name: Release
-#       uses: softprops/action-gh-release@v1
-#       if: startsWith(github.ref, 'refs/tags/')
-#       with:
-#         files: wheelhouse_*/*-m*linux*.whl  # manylinux / musllinux
+  non-Linux:
+    strategy:
+      # Allows for matrix sub-jobs to fail without canceling the rest
+      fail-fast: false
 
-#     - name: Upload wheels
-#       uses: actions/upload-artifact@v3
-#       with:
-#         name: wheels-${{ matrix.image }}
-#         path: wheelhouse_*/*-m*linux*.whl  # manylinux / musllinux
-#         if-no-files-found: ignore
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+        pyversion:
+          - "3.10"
+          - "3.11"
+          - "3.12"
 
-#   non-Linux:
-#     strategy:
-#       # Allows for matrix sub-jobs to fail without canceling the rest
-#       fail-fast: false
+    runs-on: ${{ matrix.os }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 11.0
+      LUPA_WITH_LUA_DLOPEN: ${{ startsWith(matrix.os, 'windows') && 'false' || 'true' }}
 
-#       matrix:
-#         os:
-#           - macos-latest
-#           - windows-latest
-#         #os: [macos-11, windows-latest, macOS-M1]
-#         #os: [macos-11, macOS-M1]
-#         #os: [macos-11]
-#         pyversion:
-#           - "2.7"
-#           - "3.6"
-#           - "3.7"
-#           - "3.8"
-#           - "3.9"
-#           - "3.10"
-#           - "3.11"
-#           - "3.12"
-#           - "pypy-3.7-v7.3.7"
-#           - "pypy-3.8-v7.3.7"
-#           - "pypy-3.9-v7.3.11"
-#           - "pypy-3.10-v7.3.13"
+    steps:
+      - uses: actions/checkout@v3
 
-#         exclude:
-#           # outdated compilers and probably not worth supporting anymore
-#           - os: windows-latest
-#             pyversion: 2.7
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.pyversion }}
 
-#     runs-on: ${{ matrix.os }}
-#     env:
-#       MACOSX_DEPLOYMENT_TARGET: 11.0
-#       LUPA_WITH_LUA_DLOPEN: ${{ startsWith(matrix.os, 'windows') && 'false' || 'true' }}
+      - name: Install MacOS dependencies
+        if: startsWith(matrix.os, 'mac')
+        run: |
+          brew install automake libtool
+          ln -s /usr/local/bin/glibtoolize /usr/local/bin/libtoolize
 
-#     steps:
-#     - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: python -m pip install setuptools wheel -r requirements.txt
 
-#     - name: Check out recursively
-#       run: git submodule update --init --recursive
+      - name: Build wheels
+        run: |
+          set USE_BUNDLE=true
+          python setup.py --with-cython sdist ${{ contains(matrix.pyversion, '3.') && 'build_ext -j6' || '' }} bdist_wheel
 
-#     - name: Set up Python
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: ${{ matrix.pyversion }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*.whl
 
-#     - name: Install MacOS dependencies
-#       if: startsWith(matrix.os, 'mac')
-#       run: |
-#         brew install automake libtool
-#         ln -s /usr/local/bin/glibtoolize /usr/local/bin/libtoolize
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.pyversion }}
+          path: dist/*.whl
+          if-no-files-found: ignore
 
-#     - name: Install dependencies
-#       run: python -m pip install setuptools wheel -r requirements.txt
+  publish-to-pypi:
+    name: Publish Python 🐍 distribution 📦 to PyPI
+    needs:
+      - Linux
+      - non-Linux
+    runs-on: ubuntu-latest
 
-#     - name: Build wheels
-#       run: |
-#         set USE_BUNDLE=true
-#         python setup.py --with-cython sdist ${{ contains(matrix.pyversion, '3.') && 'build_ext -j6' || '' }} bdist_wheel
+    environment:
+      name: pypi
+      url: https://pypi.org/p/randovania-lupa
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
 
-#     - name: Release
-#       uses: softprops/action-gh-release@v1
-#       if: startsWith(github.ref, 'refs/tags/')
-#       with:
-#         files: dist/*.whl
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist/
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
-#     - name: Upload wheels
-#       uses: actions/upload-artifact@v3
-#       with:
-#         name: wheels-${{ matrix.os }}
-#         path: dist/*.whl
-#         if-no-files-found: ignore
+  # publish-to-testpypi:
+  #   name: Publish Python 🐍 distribution 📦 to TestPyPI
+  #   needs:
+  #     - Linux
+  #     - non-Linux
+  #   runs-on: ubuntu-latest
+
+  #   environment:
+  #     name: testpypi
+  #     url: https://test.pypi.org/p/randovania-lupa
+
+  #   permissions:
+  #     id-token: write # IMPORTANT: mandatory for trusted publishing
+
+  #   steps:
+  #     - name: Download all the dists
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         merge-multiple: true
+  #         path: dist/
+  #     - name: Publish distribution 📦 to TestPyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         repository-url: https://test.pypi.org/legacy/

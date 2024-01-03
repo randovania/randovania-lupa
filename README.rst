@@ -1,3 +1,12 @@
+Randovania-Lupa
+===============
+
+This is a fork of Lupa https://github.com/scoder/lupa
+
+Intended to be used with Randovania projects.
+
+See the following for the original Readme and authorship. (Slightly modified to pass doctest)
+
 Lupa
 ====
 
@@ -119,8 +128,8 @@ Examples
 
 .. code:: python
 
-      >>> import lupa
-      >>> from lupa import LuaRuntime
+      >>> import randovania_lupa as lupa
+      >>> from randovania_lupa import LuaRuntime
       >>> lua = LuaRuntime(unpack_returned_tuples=True)
 
       >>> lua.eval('1+1')
@@ -800,7 +809,7 @@ implementation`_ for the `Computer Language Benchmarks Game`_.
     image_size = 1280   # == 1280 x 1280
     thread_count = 8
 
-    from lupa import LuaRuntime
+    from randovania_lupa import LuaRuntime
     lua_funcs = [ LuaRuntime(encoding=None).eval(lua_code)
                   for _ in range(thread_count) ]
 
