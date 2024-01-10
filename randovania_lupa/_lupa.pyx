@@ -614,7 +614,7 @@ cdef class LuaRuntime:
             lua.lua_settop(L, old_top)
             unlock_runtime(self)
 
-    def compile_to_byes(self, lua_code: str) -> bytes:
+    def compile_to_bytes(self, lua_code: str) -> bytes:
         """Compiles a Lua program and returns the bytes.
         
         lua_code is a string with the lua code
