@@ -14,7 +14,7 @@ jobs:
           - windows-latest
           - ubuntu-latest
           # - macos-11
-          - macos-latest
+          - macos-13
         python-version:
           - "3.10"
           - "3.11"
@@ -53,12 +53,11 @@ jobs:
         CFLAGS: ${{ env.CFLAGS }} ${{ env.CFLAGS_LTO }}
         LDFLAGS: ${{ env.CFLAGS_LTO }}
 
+    - name: Install wheel
+      run: python -m pip install dist/*.whl
+
     - name: Run tests
-      run: python setup.py test
-      env:
-        SETUP_OPTIONS: --use-bundle --no-luajit
-        CFLAGS: ${{ env.CFLAGS }} ${{ env.CFLAGS_LTO }}
-        LDFLAGS: ${{ env.CFLAGS_LTO }}
+      run: python -m unittest
 
     - name: Upload wheels
       if: ${{ contains(matrix.lua-version, 'bundle') }}

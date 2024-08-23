@@ -109,7 +109,7 @@ jobs:
 
       matrix:
         os:
-          - macos-latest
+          - macos-13
           - windows-latest
         pyversion:
           - "3.10"
