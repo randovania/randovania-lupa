@@ -2529,7 +2529,7 @@ cdef struct ByteDescriptor:
     size_t length
     char* data
 
-cdef int byte_writer(lua_State* L, void* new_data, size_t new_size, void* desc) noexcept nogil:
+cdef int byte_writer(lua_State* L, const void* new_data, size_t new_size, void* desc) noexcept nogil:
     cdef ByteDescriptor* bd = <ByteDescriptor*>desc
     cdef char* data
     data = bd.data
