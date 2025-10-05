@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 cimport cython
 
+from ctypes import c_long as long
 from libc.string cimport strlen, strchr, memcpy
 from libc.stdlib cimport malloc, free, realloc
 from libc.stdio cimport fprintf, stderr, fflush
