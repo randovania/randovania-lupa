@@ -191,7 +191,7 @@ jobs:
       matrix:
         image:
           - manylinux2014_x86_64
-          - manylinux2014_i686
+          #- manylinux2014_i686
         pyversion: ["*"]
 
     runs-on: ubuntu-22.04
