@@ -28,7 +28,7 @@ environment = {CFLAGS = "-O3 -g1 -pipe -fPIC -flto -march=armv8-a -mtune=cortex-
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "x86"]
-test-command = "python -c \"import randovania_lupa\" && python -c \"import randovania_lupa.lua54\""
+test-command = "python -c \"import randovania_lupa\" && python -c \"import randovania_lupa.lua51\""
 
 [tool.cibuildwheel.macos]
 # https://cibuildwheel.readthedocs.io/en/stable/faq/#what-to-provide suggests to provide

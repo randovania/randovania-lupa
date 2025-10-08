@@ -26,7 +26,7 @@ all:  local
 local:
 	LUPA_WITH_LUA_DLOPEN=$(WITH_LUA_DLOPEN) ${PYTHON} setup.py build_ext --inplace $(WITH_PARALLEL) $(WITH_CYTHON)
 
-sdist dist/randovania-lupa-$(VERSION).tar.gz:
+sdist dist/randovania_lupa-$(VERSION).tar.gz:
 	${PYTHON} setup.py sdist
 
 test: local
@@ -48,7 +48,7 @@ qemu-user-static:
 wheel_manylinux: $(addprefix wheel_,$(MANYLINUX_IMAGES))
 $(addprefix wheel_,$(filter-out %_x86_64, $(filter-out %_i686, $(MANYLINUX_IMAGES)))): qemu-user-static
 
-wheel_%: dist/randovania-lupa-$(VERSION).tar.gz
+wheel_%: dist/randovania_lupa-$(VERSION).tar.gz
 	@echo "Building $(subst wheel_,,$@) wheels for Randovania-Lupa $(VERSION)"
 	mkdir -p wheelhouse_$(subst wheel_,,$@)
 	time docker run --rm -t \
