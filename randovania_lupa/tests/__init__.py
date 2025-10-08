@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 import doctest
 import os
@@ -14,6 +12,14 @@ class LupaTestCase(unittest.TestCase):
     Subclasses can use 'self.lupa' to get the test module, which build_suite_for_module() below will vary.
     """
     lupa = randovania_lupa
+
+    if sys.version_info < (3, 4):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def subTest(self, message=None, **parameters):
+            """Dummy implementation"""
+            yield
 
 
 def find_lua_modules():

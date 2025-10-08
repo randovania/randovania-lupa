@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import glob
 import os
 import os.path
@@ -75,8 +73,6 @@ def cmd_output(command):
 
 
 def decode_path_output(s):
-    if sys.version_info[0] < 3:
-        return s  # no need to decode, and safer not to do it
     # we don't really know in which encoding pkgconfig
     # outputs its results, so we try to guess
     for encoding in (sys.getfilesystemencoding(),
@@ -365,9 +361,6 @@ if not configs and not option_no_bundle:
             # http://t-p-j.blogspot.com/2010/11/lupa-on-os-x-with-macports-python-26.html
             # LuaJIT 2.1-alpha3 fails at runtime.
             or (platform == 'darwin' and 'luajit' in os.path.basename(lua_bundle_path.rstrip(os.sep)))
-            # Couldn't get the Windows build to work. See
-            # https://luajit.org/install.html#windows
-            or (platform.startswith('win') and 'luajit' in os.path.basename(lua_bundle_path.rstrip(os.sep)))
             # Let's restrict LuaJIT to x86_64 for now.
             or (get_machine() not in ("x86_64", "AMD64") and 'luajit' in os.path.basename(lua_bundle_path.rstrip(os.sep)))
         )
@@ -476,12 +469,12 @@ setup(
         dev_status(VERSION),
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
-        'License :: OSI Approved :: MIT License',
         'Programming Language :: Cython',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Lua',
         'Programming Language :: Other Scripting Engines',
         'Operating System :: OS Independent',
