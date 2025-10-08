@@ -4,7 +4,7 @@ requires = ["Cython>=3.1.2", "setuptools", "wheel"]
 [tool.cibuildwheel]
 build-verbosity = 2
 environment = {LUPA_USE_BUNDLE = "true"}
-skip = ["pp*-manylinux_aarch64", "pp*-manylinux_i686", "cp38-macosx_universal2"]
+skip = ["pp*-manylinux_aarch64", "pp*-manylinux_i686", "cp38-macosx_universal2", "cp38*", "cp39*"]
 enable = "cpython-prerelease"
 test-skip = ["*-macosx_arm64", "*-macosx_universal2:arm64", "*-macosx_x86_64"]
 test-command = "python -c \"import randovania_lupa\" && python -c \"import randovania_lupa.lua51\" "
