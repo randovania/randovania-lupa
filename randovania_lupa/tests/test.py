@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function
-
 import gc
 import operator
 import os.path
@@ -20,7 +18,6 @@ try:
 except (ImportError, AttributeError):
     IS_PYPY = False
 
-IS_PYTHON2 = sys.version_info[0] < 3
 not_in_pypy = unittest.skipIf(IS_PYPY, "test not run in PyPy")
 
 try:
@@ -29,13 +26,8 @@ except NameError:
     def _next(o):
         return o.next()
 
-unicode_type = type('abc'.decode('ASCII') if IS_PYTHON2 else 'abc')
 
-if IS_PYTHON2:
-    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
-
-
-class SetupLuaRuntimeMixin(object):
+class SetupLuaRuntimeMixin:
     lua_runtime_kwargs = {}
 
     def setUp(self):
@@ -55,6 +47,7 @@ class TestLuaRuntimeRefcounting(LupaTestCase):
             run_test()
         del i
         gc.collect()
+
         new_count = len(gc.get_objects())
         if off_by_one and old_count == new_count + 1:
             # FIXME: This happens in test_attrgetter_refcycle - need to investigate why!
@@ -104,6 +97,9 @@ class TestLuaRuntimeRefcounting(LupaTestCase):
 
 
 class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
+    def assertLuaResult(self, lua_expression, result):
+        self.assertEqual(self.lua.eval(lua_expression), result)
+
     def test_lua_version(self):
         version = self.lua.lua_version
         self.assertEqual(tuple, type(version))
@@ -116,6 +112,20 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
         lua_implementation = self.lua.lua_implementation
         self.assertTrue(lua_implementation.startswith("Lua"), lua_implementation)
         self.assertTrue(lua_implementation.split()[0] in ("Lua", "LuaJIT"), lua_implementation)
+
+    def test_lua_gccollect(self):
+        self.lua.gccollect()
+
+    def test_lua_nogc(self):
+        if self.lua.lua_version >= (5,2):
+            self.assertTrue(self.lua.eval('collectgarbage("isrunning")'))
+
+        with self.lua.nogc():
+            if self.lua.lua_version >= (5,2):
+                self.assertFalse(self.lua.eval('collectgarbage("isrunning")'))
+
+        if self.lua.lua_version >= (5,2):
+            self.assertTrue(self.lua.eval('collectgarbage("isrunning")'))
 
     def test_eval(self):
         self.assertEqual(2, self.lua.eval('1+1'))
@@ -151,15 +161,12 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
     def test_eval_error_message_decoding(self):
         try:
             self.lua.eval('require "UNKNOWNöMODULEäNAME"')
-        except self.lupa.LuaError:
-            error = ('%s'.decode('ASCII') if IS_PYTHON2 else '%s') % sys.exc_info()[1]
+        except self.lupa.LuaError as exc:
+            error = str(exc)
         else:
             self.fail('expected error not raised')
         expected_message = 'module \'UNKNOWNöMODULEäNAME\' not found'
-        if IS_PYTHON2:
-            expected_message = expected_message.decode('UTF-8')
-        self.assertTrue(expected_message in error,
-                        '"%s" not found in "%s"' % (expected_message, error))
+        self.assertIn(expected_message, error)
 
     def test_execute(self):
         self.assertEqual(2, self.lua.execute('return 1+1'))
@@ -255,10 +262,7 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_pybuiltins(self):
         function = self.lua.eval('function() return python.builtins end')
-        try:
-            import __builtin__ as builtins
-        except ImportError:
-            import builtins
+        import builtins
         self.assertEqual(builtins, function())
 
     def test_pybuiltins_disabled(self):
@@ -283,7 +287,7 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_call_str_class(self):
         called = [False]
-        class test(object):
+        class test:
             def __str__(self):
                 called[0] = True
                 return 'STR!!'
@@ -598,10 +602,23 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
         self.assertRaises(TypeError, self.lua.table_from, None)
         self.assertRaises(TypeError, self.lua.table_from, {"a": 5}, 123)
 
-    # def test_table_from_nested(self):
-    #     table = self.lua.table_from({"obj": {"foo": "bar"}})
-    #     lua_type = self.lua.eval("type")
-    #     self.assertEqual(lua_type(table["obj"]), "table")
+    def test_table_from_nested(self):
+        table = self.lua.table_from([[3, 3, 3]], recursive=True)
+        self.lua.globals()["data"] = table
+        self.assertLuaResult("data[1][1]", 3)
+        self.assertLuaResult("data[1][2]", 3)
+        self.assertLuaResult("data[1][3]", 3)
+        self.assertLuaResult("type(data)", "table")
+        self.assertLuaResult("type(data[1])", "table")
+        self.assertLuaResult("#data", 1)
+        self.assertLuaResult("#data[1]", 3)
+
+    def test_table_from_nested2(self):
+        table2 = self.lua.table_from([{"a": "foo"}, {"b": 1}], recursive=True)
+        self.lua.globals()["data2"] = table2
+        self.assertLuaResult("#data2", 2)
+        self.assertLuaResult("data2[1]['a']", "foo")
+        self.assertLuaResult("data2[2]['b']", 1)
 
     def test_table_from_table(self):
         table1 = self.lua.eval("{3, 4, foo='bar'}")
@@ -631,6 +648,75 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
         self.assertEqual(len(table2), 3)
         self.assertEqual(list(table2.keys()), [1, 2, 3])
         self.assertEqual(set(table2.values()), set([1, 2, "foo"]))
+
+    def test_table_from_nested_dict(self):
+        data = {"a": {"a": "foo"}, "b": {"b": "bar"}}
+        table = self.lua.table_from(data, recursive=True)
+        self.assertEqual(table["a"]["a"], "foo")
+        self.assertEqual(table["b"]["b"], "bar")
+        self.lua.globals()["data"] = table
+        self.assertLuaResult("data.a.a", "foo")
+        self.assertLuaResult("data.b.b", "bar")
+        self.assertLuaResult("type(data.a)", "table")
+        self.assertLuaResult("type(data.b)", "table")
+
+    def test_table_from_nested_list(self):
+        data = {"a": {"a": "foo"}, "b": [1, 2, 3]}
+        table = self.lua.table_from(data, recursive=True)
+        self.assertEqual(table["a"]["a"], "foo")
+        self.assertEqual(table["b"][1], 1)
+        self.assertEqual(table["b"][2], 2)
+        self.assertEqual(table["b"][3], 3)
+        self.lua.globals()["data"] = table
+        self.assertLuaResult("data.a.a", "foo")
+        self.assertLuaResult("#data.b", 3)
+        self.lua.eval("assert(#data.b==3, 'failed')")
+        self.assertLuaResult("type(data.a)", "table")
+        self.assertLuaResult("type(data.b)", "table")
+
+    def test_table_from_nested_list_bad(self):
+        data = {"a": {"a": "foo"}, "b": [1, 2, 3]}
+        table = self.lua.table_from(data) # in this case, lua will get userdata instead of table
+        self.assertEqual(table["a"]["a"], "foo")
+        self.assertEqual(list(table["b"]), [1, 2, 3])
+        self.assertEqual(table["b"][0], 1)
+        self.assertEqual(table["b"][1], 2)
+        self.assertEqual(table["b"][2], 3)
+        self.lua.globals()["data"] = table
+        self.assertLuaResult("type(data.a)", "userdata")
+        self.assertLuaResult("type(data.b)", "userdata")
+
+    def test_table_from_self_ref_obj(self):
+        data = {}
+        data["key"] = data
+        l = []
+        l.append(l)
+        data["list"] = l
+        table = self.lua.table_from(data, recursive=True)
+        self.lua.globals()["data"] = table
+        self.assertLuaResult("type(data)", 'table')
+        self.assertLuaResult("type(data['key'])",'table')
+        self.assertLuaResult("type(data['list'])",'table')
+        self.assertLuaResult("data['list']==data['list'][1]", True)
+        self.assertLuaResult("type(data['key']['key']['key']['key'])", 'table')
+        self.assertLuaResult("type(data['key']['key']['key']['key']['list'])", 'table')
+
+    def test_table_from_nested_datastructures(self):
+        from itertools import count
+        def make_ds(*children):
+            yield list(children)
+            yield dict(zip(count(), children))
+            yield {chr(ord('A') + i): child for i, child in enumerate(children)}
+
+        elements = [1, 2, 'x', 'y']
+        for ds1 in make_ds(*elements):
+            for ds2 in make_ds(ds1):
+                for ds3 in make_ds(ds1, elements, ds2):
+                    for ds in make_ds(ds1, ds2, ds3):
+                        with self.subTest(ds=ds):
+                            table = self.lua.table_from(ds)
+                            # we don't translate transitively, so apply arbitrary test operation
+                            self.assertTrue(list(table))
 
     # FIXME: it segfaults
     # def test_table_from_generator_calling_lua_functions(self):
@@ -748,14 +834,14 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_pygetattr(self):
         lua_func = self.lua.eval('function(x) return x.ATTR end')
-        class test(object):
+        class test:
             def __init__(self):
                 self.ATTR = 5
         self.assertEqual(test().ATTR, lua_func(test()))
 
     def test_pysetattr(self):
         lua_func = self.lua.eval('function(x) x.ATTR = 123 end')
-        class test(object):
+        class test:
             def __init__(self):
                 self.ATTR = 5
         t = test()
@@ -847,14 +933,14 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_attribute_filter(self):
         def attr_filter(obj, name, setting):
-            if isinstance(name, unicode_type):
+            if isinstance(name, str):
                 if not name.startswith('_'):
                     return name + '1'
             raise AttributeError('denied')
 
         lua = self.lupa.LuaRuntime(attribute_filter=attr_filter)
         function = lua.eval('function(obj) return obj.__name__ end')
-        class X(object):
+        class X:
             a = 0
             a1 = 1
             _a = 2
@@ -960,14 +1046,14 @@ class TestAttributesNoAutoEncoding(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_pygetattr(self):
         lua_func = self.lua.eval('function(x) return x.ATTR end')
-        class test(object):
+        class test:
             def __init__(self):
                 self.ATTR = 5
         self.assertEqual(test().ATTR, lua_func(test()))
 
     def test_pysetattr(self):
         lua_func = self.lua.eval('function(x) x.ATTR = 123 end')
-        class test(object):
+        class test:
             def __init__(self):
                 self.ATTR = 5
         t = test()
@@ -989,7 +1075,7 @@ class TestStrNoAutoEncoding(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_call_str_class(self):
         called = [False]
-        class test(object):
+        class test:
             def __str__(self):
                 called[0] = True
                 return 'STR!!'
@@ -1011,20 +1097,20 @@ class TestAttributeHandlers(LupaTestCase):
         self.lua = None
         gc.collect()
 
-    class X(object):
+    class X:
         a = 0
         a1 = 1
         _a = 2
         __a = 3
 
-    class Y(object):
+    class Y:
         a = 0
         a1 = 1
         _a = 2
         __a = 3
 
     def attr_getter(self, obj, name):
-        if not isinstance(name, unicode_type):
+        if not isinstance(name, str):
             raise AttributeError('bad type for attr_name')
         if isinstance(obj, self.X):
             if not name.startswith('_'):
@@ -1193,7 +1279,7 @@ class TestPythonObjectsInLua(SetupLuaRuntimeMixin, LupaTestCase):
         lua_type = self.lua.eval('type')
         lua_get_call = self.lua.eval('function(obj) return getmetatable(obj).__call end')
 
-        class Callable(object):
+        class Callable:
             def __call__(self): pass
             def __getitem__(self, item): pass
 
@@ -1204,7 +1290,7 @@ class TestPythonObjectsInLua(SetupLuaRuntimeMixin, LupaTestCase):
         lua_type = self.lua.eval('type')
         lua_get_index = self.lua.eval('function(obj) return getmetatable(obj).__index end')
 
-        class GetItem(object):
+        class GetItem:
             def __getitem__(self, item): pass
 
         self.assertEqual('userdata', lua_type(GetItem()))
@@ -1214,7 +1300,7 @@ class TestPythonObjectsInLua(SetupLuaRuntimeMixin, LupaTestCase):
         lua_type = self.lua.eval('type')
         lua_get_index = self.lua.eval('function(obj) return getmetatable(obj).__index end')
 
-        class GetAttr(object):
+        class GetAttr:
             pass
 
         self.assertEqual('userdata', lua_type(GetAttr()))
@@ -1328,12 +1414,13 @@ class TestPythonObjectsInLua(SetupLuaRuntimeMixin, LupaTestCase):
 
 
 class TestLuaCoroutines(SetupLuaRuntimeMixin, LupaTestCase):
+
+    @unittest.skipIf(IS_PYPY, "attribute access differs in PyPy")
     def test_coroutine_object(self):
         f = self.lua.eval("function(N) coroutine.yield(N) end")
         gen = f.coroutine(5)
         self.assertRaises(AttributeError, getattr, gen, '__setitem__')
-        if not IS_PYPY:
-            self.assertRaises(AttributeError, setattr, gen, 'send', 5)
+        self.assertRaises(AttributeError, setattr, gen, 'send', 5)
         self.assertRaises(AttributeError, setattr, gen, 'no_such_attribute', 5)
         self.assertRaises(AttributeError, getattr, gen, 'no_such_attribute')
         self.assertRaises(AttributeError, gen.__getattr__, 'no_such_attribute')
@@ -1729,13 +1816,11 @@ class TestLuaRuntimeEncoding(LupaTestCase):
         gc.collect()
 
     test_string = '"abcüöä"'
-    if IS_PYTHON2:
-        test_string = test_string.decode('UTF-8')
 
     def _encoding_test(self, encoding, expected_length):
         lua = self.lupa.LuaRuntime(encoding)
 
-        self.assertEqual(unicode_type,
+        self.assertEqual(str,
                          type(lua.eval(self.test_string)))
 
         self.assertEqual(self.test_string[1:-1],
@@ -1990,10 +2075,7 @@ class TestThreading(LupaTestCase):
         # plausability checks - make sure it's not all white or all black
         self.assertEqual('\0'.encode('ASCII')*(image_size//8//2),
                          result_bytes[:image_size//8//2])
-        if IS_PYTHON2:
-            self.assertTrue('\xFF' in result_bytes)
-        else:
-            self.assertTrue('\xFF'.encode('ISO-8859-1') in result_bytes)
+        self.assertTrue(b'\xFF' in result_bytes)
 
         # if we have PIL, check that it can read the image
         ## try:
@@ -2003,6 +2085,23 @@ class TestThreading(LupaTestCase):
         ## else:
         ##     image = Image.fromstring('1', (image_size, image_size), result_bytes)
         ##     image.show()
+
+    def test_lua_gc_deadlock(self):
+        # Delete a Lua reference from a thread while the LuaRuntime is running.
+        lua = self.lupa.LuaRuntime()
+        ref = [lua.eval("{}")]
+
+        def trigger_gc(ref):
+            del ref[0]
+
+        thread = threading.Thread(target=trigger_gc, args=[ref])
+
+        lua.execute(
+            "start, join = ...; start(); join()",
+            thread.start,
+            thread.join,
+        )
+        assert not thread.is_alive(), "thread didn't finish - deadlock?"
 
 
 class TestDontUnpackTuples(LupaTestCase):
@@ -2132,7 +2231,7 @@ class TestMethodCall(LupaTestCase):
 
         self.lua = self.lupa.LuaRuntime(unpack_returned_tuples=True)
 
-        class C(object):
+        class C:
             def __init__(self, x):
                 self.x = int(x)
 
@@ -2262,19 +2361,19 @@ def func_3(x, y, z='default'):
     return ("x=%s, y=%s, z=%s" % (x, y, z))
 
 
-class MyCls_1(object):
+class MyCls_1():
     @randovania_lupa.unpacks_lua_table_method
     def meth(self, x):
         return ("x=%s" % (x,))
 
 
-class MyCls_2(object):
+class MyCls_2():
     @randovania_lupa.unpacks_lua_table_method
     def meth(self, x, y):
         return ("x=%s, y=%s" % (x, y))
 
 
-class MyCls_3(object):
+class MyCls_3():
     @randovania_lupa.unpacks_lua_table_method
     def meth(self, x, y, z='default'):
         return ("x=%s, y=%s, z=%s" % (x, y, z))
@@ -2418,11 +2517,7 @@ class NoEncodingMethodKwargsDecoratorTest(MethodKwargsDecoratorTest):
 ################################################################################
 # tests for the FastRLock implementation
 
-try:
-    from thread import start_new_thread, get_ident
-except ImportError:
-    # Python 3?
-    from _thread import start_new_thread, get_ident
+from _thread import start_new_thread, get_ident
 
 
 def _wait():
@@ -2450,7 +2545,7 @@ class TestFastRLock(LupaTestCase):
     def tearDown(self):
         gc.collect()
 
-    class Bunch(object):
+    class Bunch:
         """
         A bunch of threads.
         """
@@ -2787,7 +2882,7 @@ class PythonArgumentsInLuaTest(SetupLuaRuntimeMixin, LupaTestCase):
             if objtype not in {'number', 'string'}:
                 self.assertIncorrect('python.args{[kwargs["%s"]] = true}' % objtype,
                         regex='table key is neither an integer nor a string')
- 
+
     def test_kwargs_merge(self):
         self.assertResult('python.args{1, a=1}, python.args{2}, python.args{}, python.args{b=2}', (1, 2), dict(a=1, b=2))
 

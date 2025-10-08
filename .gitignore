@@ -6,6 +6,7 @@ build
 dist
 MANIFEST
 *.pyc
+*.pyo
 *.pyd
 *.dll
 *.egg-info
@@ -15,6 +16,14 @@ MANIFEST
 wheel*/
 randovania_lupa/version.py
 randovania_lupa/lua*.pyx
+*.orig
+*~
+*wheel*/
+venv*
+.eggs/
+lupa/version.py
+lupa/lua*.pyx
+TEST/
 
 # Vim swapfiles
 *.swp
