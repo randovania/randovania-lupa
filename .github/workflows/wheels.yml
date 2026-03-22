@@ -244,9 +244,14 @@ jobs:
       run: make USE_BUNDLE=true sdist wheel_${{ matrix.image }}
       env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}" }
 
+    - name: Collect wheels
+      run: |
+        mkdir -p dist_linux
+        cp wheelhouse_${{ matrix.image }}/*-m*linux*.whl dist_linux/ 2>/dev/null || true
+
     - name: Upload wheels
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: wheels-${{ matrix.image }}
-        path: wheelhouse_*/*-m*linux*.whl  # manylinux / musllinux
+        path: dist_linux/*.whl
         if-no-files-found: ignore
