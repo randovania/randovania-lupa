@@ -6,7 +6,62 @@ jobs:
   build:
 
     strategy:
-      # Allows for matrix sub-jobs to fail without canceling the rest
+      fail-fast: false
+
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CFLAGS_LTO: ${{ contains(matrix.os, 'windows') && '/LTCG' || '-flto' }}
+      CFLAGS: ${{ contains(matrix.os, 'windows') && '/O2' || '-O2 -fPIC' }} -g
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      LUPA_WITH_LUA_DLOPEN: ${{ startsWith(matrix.os, 'windows') && 'false' || 'true' }}
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Check out recursively
+      run: git submodule update --init --recursive
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v6.2.0
+      with:
+        python-version: "3.10"
+
+    - name: Set up Python packages
+      run: |
+        python -m pip install -U pip setuptools
+        python -m pip install -U wheel tox virtualenv -r requirements.txt
+
+    - name: Setup Visual Studio
+      if: contains(matrix.os, 'windows')
+      uses: TheMrMilchmann/setup-msvc-dev@v4
+      with:
+        arch: x64
+
+    - name: Build wheel
+      run: python setup.py sdist build_ext -i -j6 bdist_wheel
+      env:
+        SETUP_OPTIONS: "--use-bundle"
+        CFLAGS: ${{ env.CFLAGS }} ${{ env.CFLAGS_LTO }}
+        LDFLAGS: ${{ env.CFLAGS_LTO }}
+        LUPA_LIMITED_API: "3.10"
+
+    - name: Upload wheel
+      uses: actions/upload-artifact@v7
+      with:
+        name: wheel-${{ matrix.os }}
+        path: dist/*.whl
+
+  test:
+    needs: build
+
+    strategy:
       fail-fast: false
 
       matrix:
@@ -21,24 +76,8 @@ jobs:
           - "3.12"
           - "3.11"
           - "3.10"
-          #- "3.9"
-          #- "3.8"
-          #- "pypy-3.8"
-          #- "pypy-3.9"
-          #- "pypy-3.10"
-          #- "pypy-3.11"
-        lua-version:
-          - "bundle"
-
-        #exclude:
 
     runs-on: ${{ matrix.os }}
-
-    env:
-      CFLAGS_LTO: ${{ contains(matrix.lua-version, 'bundle')  && (contains(matrix.os, 'windows') && '/LTCG' || '-flto') || '' }}
-      CFLAGS: ${{ contains(matrix.os, 'windows') && '/O2' || '-O2 -fPIC' }} -g
-      MACOSX_DEPLOYMENT_TARGET: "11.0"
-      LUPA_WITH_LUA_DLOPEN: ${{ startsWith(matrix.os, 'windows') && 'false' || 'true' }}
 
     steps:
     - uses: actions/checkout@v6
@@ -51,38 +90,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Set up Python packages
-      run: |
-        python -m pip install -U pip setuptools
-        python -m pip install -U wheel tox virtualenv -r requirements.txt
-
-    - name: Set up Lua ${{ matrix.lua-version }}
-      if: contains(matrix.os, 'ubuntu') && matrix.lua-version != 'bundle'
-      run: sudo apt-get install lib${{ matrix.lua-version }}-dev
-
-    - name: Setup Visual Studio
-      if: contains(matrix.os, 'windows')
-      uses: TheMrMilchmann/setup-msvc-dev@v4
+    - name: Download wheel
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
-        arch: x64
-
-    - name: Build wheel
-      run: python setup.py sdist build_ext -i -j6 bdist_wheel
-      env:
-        SETUP_OPTIONS: ${{ !contains(matrix.lua-version, 'luajit') && (contains(matrix.lua-version, 'bundle') && '--use-bundle' || '--no-luajit') || '' }}
-        CFLAGS: ${{ env.CFLAGS }} ${{ env.CFLAGS_LTO }}
-        LDFLAGS: ${{ env.CFLAGS_LTO }}
+        name: wheel-${{ matrix.os }}
+        path: dist/
 
     - name: Run tests
       run: |
         bash -c "python -m pip install dist/randovania_lupa-*.whl"
         python -m randovania_lupa.tests.__main__
-      continue-on-error: ${{ contains(matrix.python-version, 'pypy') }}
-
-    - name: Upload wheels
-      if: matrix.lua-version == 'bundle' && matrix.os == 'macos-latest'
-      uses: actions/upload-artifact@v7
-      with:
-        name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
-        path: dist/*.whl
-        if-no-files-found: ignore
+      continue-on-error: ${{ contains(matrix.python-version, 'dev') }}
