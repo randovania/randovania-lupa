@@ -50,7 +50,6 @@ jobs:
         SETUP_OPTIONS: "--use-bundle"
         CFLAGS: ${{ env.CFLAGS }} ${{ env.CFLAGS_LTO }}
         LDFLAGS: ${{ env.CFLAGS_LTO }}
-        LUPA_LIMITED_API: "3.10"
 
     - name: Upload wheel
       uses: actions/upload-artifact@v7

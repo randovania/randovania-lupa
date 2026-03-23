@@ -240,7 +240,7 @@ jobs:
 
     - name: Build Linux wheels
       run: make USE_BUNDLE=true sdist wheel_${{ matrix.image }}
-      env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}", LUPA_LIMITED_API: "3.10" }
+      env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}" }
 
     - name: Collect wheels
       run: |

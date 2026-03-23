@@ -79,7 +79,7 @@ runtime. The easiest way is to use the bundled lua submodule:
      
 #) Build Lupa::
 
-     $ python3 setup.py bdist_wheel --use-bundle --with-cython
+     $ python3 setup.py bdist_wheel --use-bundle
 
 You can also build it by installing a Lua 5.x package, including
 any development packages (header files etc.). On systems that
