@@ -81,9 +81,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-
-    - name: Check out recursively
-      run: git submodule update --init --recursive
+      with:
+        path: source  # subdirectory so randovania_lupa/ source doesn't shadow the installed wheel
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6.2.0

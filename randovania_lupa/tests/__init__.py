@@ -92,15 +92,16 @@ def suite():
     # to remove some platform specific tests.
     readme_filename = 'README.rst'
     readme_file = os_path.join(os_path.dirname(__file__), '..', '..', readme_filename)
-    with open(readme_file) as f:
-        readme = f.read()
-    if sys.platform != 'linux2':
-        # Exclude last section, which is Linux specific.
-        readme = readme.split('Importing Lua binary modules\n----------------------------\n', 1)[0]
+    if os_path.isfile(readme_file):
+        with open(readme_file) as f:
+            readme = f.read()
+        if sys.platform != 'linux2':
+            # Exclude last section, which is Linux specific.
+            readme = readme.split('Importing Lua binary modules\n----------------------------\n', 1)[0]
 
-    parser = doctest.DocTestParser()
-    test = parser.get_doctest(readme, {'__file__': readme_file}, 'README.rst', readme_file, 0)
-    suite.addTest(doctest.DocFileCase(test))
+        parser = doctest.DocTestParser()
+        test = parser.get_doctest(readme, {'__file__': readme_file}, 'README.rst', readme_file, 0)
+        suite.addTest(doctest.DocFileCase(test))
 
     return suite
 
