@@ -423,6 +423,7 @@ def prepare_extensions(use_cython=True):
             extra_objects=config.get('extra_objects'),
             include_dirs=config.get('include_dirs'),
             define_macros=c_defines,
+            py_limited_api=bool(option_limited_api),
         ))
 
         if not use_cython:
@@ -512,7 +513,7 @@ setup(
         'Topic :: Software Development',
     ],
 
-    packages=['randovania_lupa'],
+    packages=['randovania_lupa', 'randovania_lupa.tests'],
     setup_requires=[cython_dependency],
     ext_modules=ext_modules,
     libraries=ext_libraries,
