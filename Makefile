@@ -71,7 +71,9 @@ wheel_%: dist/randovania_lupa-$(VERSION).tar.gz
 			for whl in /io/$$WHEELHOUSE/randovania_lupa-$(VERSION)-*-linux_*.whl; do auditwheel repair $$whl -w /io/$$WHEELHOUSE; done; \
 			for whl in /io/$$WHEELHOUSE/randovania_lupa-$(VERSION)-*-m*linux*.whl; do \
 				pyver=$${whl#*/randovania_lupa-$(VERSION)-}; pyver=$${pyver%%-m*}; \
-				echo "Installing in $${pyver}: $${whl}"; \
-				/opt/python/$${pyver}/bin/python -m pip install -U $${whl} && /opt/python/$${pyver}/bin/python -c "import randovania_lupa" || exit 1; \
-				/opt/python/$${pyver}/bin/python -m pip uninstall -y randovania-lupa; \
+				cpver=$${pyver%%-*}; \
+				pydir=$$(ls -d /opt/python/$${cpver}-* 2>/dev/null | head -1); \
+				echo "Installing in $${pydir} (tag $${pyver}): $${whl}"; \
+				$${pydir}/bin/python -m pip install -U $${whl} && $${pydir}/bin/python -c "import randovania_lupa" || exit 1; \
+				$${pydir}/bin/python -m pip uninstall -y randovania-lupa; \
 			done; true'
