@@ -3,17 +3,9 @@ requires = ["Cython>=3.1.6", "setuptools", "wheel"]
 
 [tool.cibuildwheel]
 build-verbosity = 2
-environment = {LUPA_USE_BUNDLE = "true"}
-skip = [
-    "pp*-manylinux_aarch64",
-    "pp*-manylinux_i686",
-    "cp38-macosx_universal2",
-    "cp38*",
-    "cp39*",
-    "cp*-musllinux*",
-    "cp31?t-*_i686",  # crashes for some reason
-    ]
-enable = "cpython-prerelease"
+build = ["cp310-*"]
+environment = {LUPA_USE_BUNDLE = "true", LUPA_LIMITED_API = "3.10"}
+skip = ["cp*-musllinux*"]
 test-skip = ["*-macosx_*"]
 test-command = "python -c \"import randovania_lupa\" && python -c \"import randovania_lupa.lua51\" && python -c \"import randovania_lupa.lua51_dread\" && python -c \"import randovania_lupa.lua51_sr\""
 
@@ -29,10 +21,11 @@ AR = "gcc-ar"
 NM = "gcc-nm"
 RANLIB = "gcc-ranlib"
 LUPA_WITH_LUA_DLOPEN = "true"
+LUPA_LIMITED_API = "3.10"
 
 [[tool.cibuildwheel.overrides]]
 select = "*aarch64"
-environment = {CFLAGS = "-O3 -g1 -pipe -fPIC -flto -march=armv8-a -mtune=cortex-a72", AR = "gcc-ar", NM = "gcc-nm", RANLIB = "gcc-ranlib", LDFLAGS = "-fPIC -flto", LUPA_USE_BUNDLE = "true", LUPA_WITH_LUA_DLOPEN = "true"}
+environment = {CFLAGS = "-O3 -g1 -pipe -fPIC -flto -march=armv8-a -mtune=cortex-a72", AR = "gcc-ar", NM = "gcc-nm", RANLIB = "gcc-ranlib", LDFLAGS = "-fPIC -flto", LUPA_USE_BUNDLE = "true", LUPA_WITH_LUA_DLOPEN = "true", LUPA_LIMITED_API = "3.10"}
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
@@ -46,3 +39,4 @@ archs = ["universal2"]
 
 [tool.cibuildwheel.macos.environment]
 LUPA_WITH_LUA_DLOPEN = "true"
+LUPA_LIMITED_API = "3.10"

@@ -220,7 +220,7 @@ jobs:
         image:
           - manylinux2014_x86_64
           #- manylinux2014_i686
-        pyversion: ["*"]
+        pyversion: ["cp310-cp310"]
 
     runs-on: ubuntu-22.04
 
@@ -240,7 +240,7 @@ jobs:
 
     - name: Build Linux wheels
       run: make USE_BUNDLE=true sdist wheel_${{ matrix.image }}
-      env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}" }
+      env: { PYTHON_BUILD_VERSION: "${{ matrix.pyversion }}", LUPA_LIMITED_API: "3.10" }
 
     - name: Collect wheels
       run: |
