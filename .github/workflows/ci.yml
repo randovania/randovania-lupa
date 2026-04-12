@@ -52,7 +52,7 @@ jobs:
         LDFLAGS: ${{ env.CFLAGS_LTO }}
 
     - name: Upload wheel
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: wheel-${{ matrix.os }}
         path: dist/*.whl

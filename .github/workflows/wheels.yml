@@ -60,7 +60,7 @@ jobs:
       run: make sdist
 
     - name: Upload sdist
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: sdist
         path: dist/*.tar.gz
@@ -140,11 +140,11 @@ jobs:
           arch: x86
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.0
+        uses: pypa/cibuildwheel@v3.4.1
         with:
           only: ${{ matrix.only }}
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: ./wheelhouse/*.whl
           name: wheel-${{ matrix.only }}
@@ -168,13 +168,13 @@ jobs:
       - name: List downloaded artifacts
         run: ls -la ./bdist_downloads
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: ./bdist_downloads/*.whl
           name: wheels
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ./bdist_downloads/*.whl
@@ -248,7 +248,7 @@ jobs:
         cp wheelhouse_${{ matrix.image }}/*-m*linux*.whl dist_linux/ 2>/dev/null || true
 
     - name: Upload wheels
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: wheels-${{ matrix.image }}
         path: dist_linux/*.whl
