@@ -23,7 +23,7 @@ jobs:
       LUPA_WITH_LUA_DLOPEN: ${{ startsWith(matrix.os, 'windows') && 'false' || 'true' }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Check out recursively
       run: git submodule update --init --recursive
@@ -52,7 +52,7 @@ jobs:
         LDFLAGS: ${{ env.CFLAGS_LTO }}
 
     - name: Upload wheel
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: wheel-${{ matrix.os }}
         path: dist/*.whl
@@ -79,7 +79,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         path: source  # subdirectory so randovania_lupa/ source doesn't shadow the installed wheel
 

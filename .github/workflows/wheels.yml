@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
     - name: Check out recursively
       run: git submodule update --init --recursive
@@ -60,7 +60,7 @@ jobs:
       run: make sdist
 
     - name: Upload sdist
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: sdist
         path: dist/*.tar.gz
@@ -74,7 +74,7 @@ jobs:
     outputs:
       include: ${{ steps.set-matrix.outputs.include }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Install cibuildwheel
         # Nb. keep cibuildwheel version pin consistent with job below
         run: pipx install cibuildwheel==3.4.0
@@ -110,7 +110,7 @@ jobs:
       LUPA_WITH_LUA_DLOPEN: ${{ startsWith(matrix.os, 'windows') && 'false' || 'true' }}
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Check out recursively
         run: git submodule update --init --recursive
@@ -140,11 +140,11 @@ jobs:
           arch: x86
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.0
+        uses: pypa/cibuildwheel@v4.1.0
         with:
           only: ${{ matrix.only }}
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: ./wheelhouse/*.whl
           name: wheel-${{ matrix.only }}
@@ -168,13 +168,13 @@ jobs:
       - name: List downloaded artifacts
         run: ls -la ./bdist_downloads
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: ./bdist_downloads/*.whl
           name: wheels
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ./bdist_downloads/*.whl
@@ -225,7 +225,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
     - name: Check out recursively
       run: git submodule update --init --recursive
@@ -248,7 +248,7 @@ jobs:
         cp wheelhouse_${{ matrix.image }}/*-m*linux*.whl dist_linux/ 2>/dev/null || true
 
     - name: Upload wheels
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: wheels-${{ matrix.image }}
         path: dist_linux/*.whl
